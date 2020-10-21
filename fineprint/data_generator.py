@@ -18,6 +18,8 @@ class DataGenerator:
   def generate(self, channel: str, segment_size: int = 8, output_dir: str = 'output'):
     assert channel in ['left', 'right', 'mono'], "channel should either 'left', 'right' or mono."
     
+    os.makedirs(output_dir, exist_ok=True)
+    
     for file in self.files:
       print(f"For {file}...")
       fs, data = wavfile.read(file)
@@ -31,9 +33,10 @@ class DataGenerator:
       
       receptive_fields = DataGenerator.__gen_receptive_fields(data, fs, segment_size)
       for i in tqdm(range(len(receptive_fields))):
+        audio_dir = os.path.join(output_dir, os.path.basename(file))
+        os.makedirs(audio_dir, exist_ok=True)
         DataGenerator.__gen_spectrogram(receptive_fields[i], fs,
-                                        os.path.join(output_dir, os.path.basename(file),
-                                                     f"{str(i+1)}.png"))
+                                        os.path.join(audio_dir, f"{str(i+1)}.png"))
   
   @staticmethod
   def __gen_receptive_fields(data: np.ndarray, fs: int, segment_size: int) -> List[np.ndarray]:
@@ -55,11 +58,14 @@ class DataGenerator:
   
   @staticmethod
   def __gen_spectrogram(data: np.ndarray, fs: int, output_path: str):
-    plt.specgram(data, Fs=fs)
-    plt.savefig(output_path, bbox_inches='tight')
+    fig, ax = plt.subplots(1)
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax.axis("off")
+    ax.specgram(data, Fs=fs)
+    fig.savefig(output_path, bbox_inches='tight')
 
 
 if __name__ == '__main__':
-  files = ["../song/bella_ciao_1.wav"]
+  files = [f"../song/{file}" for file in os.listdir("../song/")]
   generator = DataGenerator(files)
   generator.generate(channel='mono', output_dir="../output")
